@@ -1,0 +1,10 @@
+name: DLSULaguna
+version: '1.0-SNAPSHOT'
+main: zoy.dLSULaguna.DLSULaguna
+api-version: '1.21'
+
+commands:
+  joinsection:
+    description: Join your stem section
+    usage: /joinsection
+
