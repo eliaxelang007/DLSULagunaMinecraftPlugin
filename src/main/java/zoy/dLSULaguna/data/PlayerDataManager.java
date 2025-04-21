@@ -1,10 +1,10 @@
 package zoy.dLSULaguna.data;
 
-import org.bukkit.entity.Player;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.persistence.PersistentDataContainer;
 
 public class PlayerDataManager {
     private final NamespacedKey key;

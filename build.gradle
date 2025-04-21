@@ -4,29 +4,25 @@ plugins {
 }
 
 group = 'zoy'
-version = '1.0-SNAPSHOT'
+version = '1.0'
 
 repositories {
     mavenCentral()
-    maven {
-        name = "spigotmc-repo"
-        url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
-    }
-    maven {
-        name = "sonatype"
-        url = "https://oss.sonatype.org/content/groups/public/"
-    }
+    maven { url 'https://m2.dv8tion.net/releases' } // for JDA
+    maven { url "https://hub.spigotmc.org/nexus/content/repositories/snapshots/" } // Spigot repository
+    maven { url "https://oss.sonatype.org/content/groups/public/" } // Sonatype repository
 }
 
 dependencies {
     compileOnly("org.spigotmc:spigot-api:1.21.4-R0.1-SNAPSHOT")
+
+    // DiscordSRV: manual .jar file
+    compileOnly files('libs/DiscordSRV-Build-1.29.0.jar') // You can change this path if needed
+    implementation 'net.dv8tion:JDA:5.0.0-beta.20' // or latest stable version of JDA
 }
 
 tasks {
     runServer {
-        // Configure the Minecraft version for our task.
-        // This is the only required configuration besides applying the plugin.
-        // Your plugin's jar (or shadowJar if present) will be used automatically.
         minecraftVersion("1.21")
     }
 }
@@ -43,7 +39,6 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-
     if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
         options.release.set(targetJavaVersion)
     }

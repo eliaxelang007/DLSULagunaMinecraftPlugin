@@ -1,10 +1,140 @@
 name: DLSULaguna
-version: '1.0-SNAPSHOT'
+version: '1.1'
 main: zoy.dLSULaguna.DLSULaguna
 api-version: '1.21'
 
 commands:
   joinsection:
     description: Join your stem section
-    usage: /joinsection
+    usage: /joinsection <section letter>
+    permission: dlsulaguna.joinsection
+    permission-message: You do not have permission to use this command.
+  tallypoints:
+    description: Tally the points of the section
+    usage: /tallypoints
+    permission: dlsulaguna.tallypoints
+    permission-message: You do not have permission to use this command.
+  leavesection:
+    description: Kick the user out of the section
+    usage: /leavesection <player>
+    permission: dlsulaguna.leavesection
+    permission-message: You do not have permission to use this command.
+  sectionchat:
+    description: Talk to your section
+    usage: /sectionchat <message>
+    permission: dlsulaguna.sectionchat
+    permission-message: You do not have permission to use section chat.
+  clearpoints:
+    description: Clear all sections points
+    usage: /clearpoints
+    permission: dlsulaguna.clearpoints
+    permission-message: You do not have permission to clear section points.
+  clearplayerstats:
+    description: Clear a player's stats
+    usage: /clearplayerstats <player>
+    permission: dlsulaguna.clearplayerstats
+    permission-message: You do not have permission to clear player stats.
+  doomsday:
+    description: Clear everything!!
+    usage: /doomsday
+    permission: dlsulaguna.doomsday
+    permission-message: You do not have permission to use this command.
+  seepoints:
+    description: Know how many points you have contributed to your section!
+    usage: /seepoints
+    permission: dlsulaguna.seepoints
+    permission-message: You do not have permission to see your points.
+  sectionleaderboard:
+    description: Know who has the most points in your section
+    usage: /sectionleaderboard
+    permission: dlsulaguna.sectionleaderboard
+    permission-message: You do not have permission to see the section leaderboard.
+  duel:
+    description: Send a duel request
+    usage: /duel <player>
+  duelaccept:
+    description: Accept a duel request
+    usage: /duelaccept <player>
+  dueldeny:
+    description: Deny a duel request
+    usage: /dueldeny <player>
+  setplayerpoints:
+    description: Change a players points
+    usage: /setplayerpoints <player> <category> <points>
+    permission: dlsulaguna.setplayerpoints
+    permission-message: You do not have permission to change player points.
+  trackplayer:
+    description: Track a player with a bounty
+    usage: /trackplayer <player>
+    permission: dlsulaguna.trackplayer
+    permission-message: You do not have permission to track players.
+  bountylist:
+    description: List the current bounties
+    usage: /bountylist
+    permission: dlsulaguna.bountylist
+    permission-message: You do not have permission to view the bounty list.
+  createsection:
+    description: Create a new section
+    usage: /createsection <section name>
+    permission: dlsulaguna.createsection
+    permission-message: You do not have permission to create sections.
+  deletesection:
+    description: Delete an existing section
+    usage: /deletesection <section name>
+    permission: dlsulaguna.deletesection
+    permission-message: You do not have permission to delete sections.
+  buildbattle:
+    description: Teleport to the Build Battle world. Use 'claim' to claim land and 'back' to return.
+    usage: /buildbattle [claim|back]
+    permission: dlsulaguna.buildbattle
+    permission-message: You do not have permission to use BuildBattle.
 
+permissions:
+  dlsulaguna.joinsection:
+    description: Allows joining a section
+    default: true
+  dlsulaguna.unafk:
+    default: true
+  dlsulaguna.sectionchat:
+    description: Allows talking in the section chat
+    default: true
+  dlsulaguna.seepoints:
+    description: Allows viewing personal section points
+    default: true
+  dlsulaguna.sectionleaderboard:
+    description: Allows viewing the section leaderboard
+    default: true
+  dlsulaguna.trackplayer:
+    description: Allows tracking a player with a bounty
+    default: true
+  dlsulaguna.bountylist:
+    description: Allows viewing the bounty list
+    default: true
+  dlsulaguna.createsection:
+    description: Allows creating new sections
+    default: op
+  dlsulaguna.leavesection:
+    description: Allows kicking players from a section
+    default: op
+  dlsulaguna.tallypoints:
+    description: Allows tallying section points
+    default: op
+  dlsulaguna.clearpoints:
+    description: Allows clearing all section points
+    default: op
+  dlsulaguna.clearplayerstats:
+    description: Allows clearing a player's stats
+    default: op
+  dlsulaguna.doomsday:
+    description: Allows executing the doomsday command
+    default: op
+  dlsulaguna.setplayerpoints:
+    description: Allows changing player points
+    default: op
+  dlsulaguna.deletesection:
+    description: Allows deleting existing sections
+    default: op
+  dlsulaguna.buildbattle:
+    description: Allows access to the Build Battle command
+    default: true
+depend: [DiscordSRV]
