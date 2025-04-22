@@ -66,38 +66,36 @@ public class ScoreUpdateTask implements Runnable {
      * Builds and sends or edits the Discord leaderboard message.
      */
     private void updateDiscordLeaderboard() {
-        // Load section stats file once
         FileConfiguration secCfg = YamlConfiguration.loadConfiguration(plugin.getSectionStatsFile());
         Set<String> sections = secCfg.getKeys(false);
-        if (sections.isEmpty()) {
-            plugin.getLogger().info("[ScoreUpdateTask] No sections to post.");
-            return;
-        }
 
-        // Gather all sections with > 0 points, then sort descending
-        List<Map.Entry<String, Integer>> sorted = sections.stream()
-                .map(key -> Map.entry(key.toUpperCase(), secCfg.getInt(key + ".Points", 0)))
-                .filter(e -> e.getValue() > 0)               // only those that currently have points
-                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                .collect(Collectors.toList());
-
-        if (sorted.isEmpty()) {
-            plugin.getLogger().info("[ScoreUpdateTask] Sections have zero points.");
-            return;
-        }
-
-        // Build message with a line per section
+        // Build message
         StringBuilder sb = new StringBuilder("📊 **Current Section Leaderboard:**\n");
-        int rank = 1;
-        for (var e : sorted) {
-            sb.append("`#")
-                    .append(rank++)
-                    .append("` **")
-                    .append(e.getKey())
-                    .append("** – ")
-                    .append(e.getValue())
-                    .append(" pts\n");
+
+        if (!sections.isEmpty()) {
+            List<Map.Entry<String, Integer>> sorted = sections.stream()
+                    .map(key -> Map.entry(key.toUpperCase(), secCfg.getInt(key + ".Points", 0)))
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                    .collect(Collectors.toList());
+
+            int rank = 1;
+            for (var e : sorted) {
+                sb.append("`#")
+                        .append(rank++)
+                        .append("` **")
+                        .append(e.getKey())
+                        .append("** – ")
+                        .append(e.getValue())
+                        .append(" pts\n");
+            }
+
+            if (sorted.isEmpty()) {
+                sb.append("_No section points yet. Stay tuned!_\n");
+            }
+        } else {
+            sb.append("_No section points yet. Stay tuned!_\n");
         }
+
         String content = sb.toString();
 
         // Send or edit the Discord message
@@ -117,6 +115,7 @@ public class ScoreUpdateTask implements Runnable {
             });
         }
     }
+
 
 
     /**

@@ -53,7 +53,7 @@ public class SectionLeaderboard implements CommandExecutor {
         sorted.sort((a, b) -> b.getValue().compareTo(a.getValue()));
 
         // Send leaderboard
-        sender.sendMessage("§6Top players in STEM11-§e" + section + "§6:");
+        sender.sendMessage("§6Top players in §e" + section + "§6:");
         int rank = 1;
         for (Map.Entry<String, Integer> entry : sorted) {
             String playerName = Bukkit.getOfflinePlayer(UUID.fromString(entry.getKey())).getName();

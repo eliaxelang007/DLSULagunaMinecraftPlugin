@@ -190,8 +190,8 @@ public class PlayerStatTracker implements Listener {
         PlayerStatsFileUtil.setStat(player, "Username", player.getName());
 
         if (!player.hasPlayedBefore() && newSection == null) {
-            player.sendMessage("§a§lWelcome to the server, §b§lSTEM Students§a§l of §2§lDe La Salle University Laguna§a§l!");
-            player.sendMessage("§7Please §e/joinsection <STEM11-Letter> §7to get started and be part of a section.");
+            player.sendMessage("§a§lWelcome to the server, §b§lSHS Students§a§l of §2§lDe La Salle University Laguna§a§l!");
+            player.sendMessage("§7Please §e/joinsection <Section> §7to get started and be part of a section.");
         }
 
         Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
