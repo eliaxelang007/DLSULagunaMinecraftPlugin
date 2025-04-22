@@ -5,18 +5,19 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.scheduler.BukkitRunnable;
-import zoy.dLSULaguna.DLSULaguna;
-
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Set;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import zoy.dLSULaguna.DLSULaguna;
 
 /**
- * Scheduled task for updating both Discord and in-game leaderboards.
+ * Scheduled task for updating Discord and in-game leaderboards.
+ * Runs calculations for online players only to minimize lag.
  */
 public class ScoreUpdateTask implements Runnable {
 
@@ -39,16 +40,21 @@ public class ScoreUpdateTask implements Runnable {
     public void run() {
         long start = System.currentTimeMillis();
         plugin.getLogger().info("[ScoreUpdateTask] Starting...");
+
         try {
-            // Recalculate and recache stats
+            // 1) Recalculate cached stats (async)
             SectionStatsFileUtil.recalculateAggregateStats();
-            PointsCalculatorUtil.calculateAllPlayerPoints();
+
+            // 2) Recalculate points only for online players (async)
+            PointsCalculatorUtil.calculateOnlinePlayerPoints();
+
+            // 3) Recalculate section totals (async)
             PointsCalculatorUtil.calculateAllSectionPoints();
 
-            // Update Discord
+            // 4) Update Discord message (async)
             updateDiscordLeaderboard();
 
-            // Update in-game leaderboard on main thread
+            // 5) Update in-game scoreboard (sync)
             Bukkit.getScheduler().runTask(plugin, () -> {
                 String title = ChatColor.YELLOW + "" + ChatColor.BOLD + "Points";
                 ScoreboardUtil.displayOnce("Points", title);
@@ -62,16 +68,11 @@ public class ScoreUpdateTask implements Runnable {
         }
     }
 
-    /**
-     * Builds and sends or edits the Discord leaderboard message.
-     */
     private void updateDiscordLeaderboard() {
         FileConfiguration secCfg = YamlConfiguration.loadConfiguration(plugin.getSectionStatsFile());
         Set<String> sections = secCfg.getKeys(false);
 
-        // Build message
         StringBuilder sb = new StringBuilder("📊 **Current Section Leaderboard:**\n");
-
         if (!sections.isEmpty()) {
             List<Map.Entry<String, Integer>> sorted = sections.stream()
                     .map(key -> Map.entry(key.toUpperCase(), secCfg.getInt(key + ".Points", 0)))
@@ -79,26 +80,22 @@ public class ScoreUpdateTask implements Runnable {
                     .collect(Collectors.toList());
 
             int rank = 1;
-            for (var e : sorted) {
+            for (var entry : sorted) {
                 sb.append("`#")
                         .append(rank++)
-                        .append("` **")
-                        .append(e.getKey())
-                        .append("** – ")
-                        .append(e.getValue())
+                        .append("` ")
+                        .append("**")
+                        .append(entry.getKey())
+                        .append("**")
+                        .append(" – ")
+                        .append(entry.getValue())
                         .append(" pts\n");
-            }
-
-            if (sorted.isEmpty()) {
-                sb.append("_No section points yet. Stay tuned!_\n");
             }
         } else {
             sb.append("_No section points yet. Stay tuned!_\n");
         }
 
         String content = sb.toString();
-
-        // Send or edit the Discord message
         if (lastMessageId > 0) {
             DiscordUtil.editMessage(discordChannelId, lastMessageId, content);
             plugin.getLogger().info("[ScoreUpdateTask] Edited Discord leaderboard.");
@@ -117,10 +114,6 @@ public class ScoreUpdateTask implements Runnable {
     }
 
 
-
-    /**
-     * Persists the last Discord message ID to file.
-     */
     private void saveMessageId() {
         try {
             FileConfiguration cfg = new YamlConfiguration();

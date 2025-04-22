@@ -16,6 +16,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import zoy.dLSULaguna.DLSULaguna;
+import zoy.dLSULaguna.utils.PlayerDataUtil;
 import zoy.dLSULaguna.utils.PlayerStatsFileUtil;
 
 import java.util.*;
@@ -66,8 +67,8 @@ public class Duels implements Listener, CommandExecutor {
             return true;
         }
 
-        int challengerPoints = PlayerStatsFileUtil.getStatInt(challenger,"Points", 0);
-        int targetPoints = PlayerStatsFileUtil.getStatInt(target,"Points", 0);
+        int challengerPoints = PlayerStatsFileUtil.getStatInt(challenger.getUniqueId(), PlayerDataUtil.getPlayerSection(challenger),"Points", 0);
+        int targetPoints = PlayerStatsFileUtil.getStatInt(target.getUniqueId(),PlayerDataUtil.getPlayerSection(target),"Points", 0);
 
         if (challengerPoints < pointsWagered) {
             challenger.sendMessage(ChatColor.RED + "You don't have enough points to wager that amount.");

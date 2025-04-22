@@ -1,7 +1,6 @@
 package zoy.dLSULaguna;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 import zoy.dLSULaguna.commands.*;
 import zoy.dLSULaguna.listeners.*;
@@ -36,10 +35,7 @@ public final class DLSULaguna extends JavaPlugin {
         registerListeners();
         startSchedulers();
 
-        // Kick off the in‑game sidebar auto‑refresh: every 60s (1200 ticks)
-        String title = ChatColor.YELLOW + "" + ChatColor.BOLD + "Section Points";
-        ScoreboardUtil.startAutoDisplay("Points", title, 1200L);
-
+        // Removed: sidebar auto‑refresh here; replaced by async ScoreUpdateTask
         getLogger().info("DLSU Laguna Plugin Enabled Successfully.");
     }
 
@@ -93,9 +89,7 @@ public final class DLSULaguna extends JavaPlugin {
     private void initializeGameManagers() {
         bounties           = new Bounties(this);
         buildBattle        = new BuildBattle(this);
-        // **Fix**: create the BuildBattle world immediately
-        buildBattle.createBuildWorld();
-
+        buildBattle.createBuildWorld();  // ensure world exists immediately
         duels              = new Duels(this);
         trackPlayerCommand = new TrackPlayerCommand(this);
     }
@@ -123,7 +117,6 @@ public final class DLSULaguna extends JavaPlugin {
     }
 
     private void registerListeners() {
-        // Core event listeners
         Bukkit.getPluginManager().registerEvents(new PlayerJoinListener(this), this);
         Bukkit.getPluginManager().registerEvents(
                 new PlayerChatListener(this, (SectionChat) getCommand("sectionchat").getExecutor()),
@@ -131,8 +124,6 @@ public final class DLSULaguna extends JavaPlugin {
         );
         Bukkit.getPluginManager().registerEvents(new PlayerStatTracker(this), this);
         Bukkit.getPluginManager().registerEvents(new PlayerSectionListener(this), this);
-
-        // Game managers as listeners
         Bukkit.getPluginManager().registerEvents(bounties, this);
         Bukkit.getPluginManager().registerEvents(duels, this);
         Bukkit.getPluginManager().registerEvents(trackPlayerCommand, this);
@@ -140,21 +131,21 @@ public final class DLSULaguna extends JavaPlugin {
     }
 
     private void startSchedulers() {
-        // Bounty refresh every 20 mins
+        // Refresh bounties every 20 minutes
         bounties.startBountyScheduler();
 
-        // Discord scoreboard update every minute
+        // Update Discord & in-game scoreboard every 60s, async
         String discordChannel = "1362873191256821780";
         Bukkit.getScheduler().runTaskTimerAsynchronously(
                 this,
                 new ScoreUpdateTask(this, discordChannel),
-                20L * 10,   // initial delay: 10s
-                20L * 60    // repeat: 60s
+                20L * 10,   // 10s initial delay
+                20L * 60    // run every 60s
         );
-        getLogger().info("Scheduled ScoreUpdateTask to run every 1 minute.");
+        getLogger().info("Scheduled ScoreUpdateTask to run every 60s asynchronously.");
     }
 
-    /** Expose your BuildBattle instance so listeners can call plugin.getBuildBattle().getBuildWorld() */
+    // Exposed for listeners or commands
     public BuildBattle getBuildBattle() {
         return buildBattle;
     }

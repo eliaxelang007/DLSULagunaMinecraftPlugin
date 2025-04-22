@@ -37,7 +37,6 @@ public class TallyPoints implements CommandExecutor {
         // Perform recalculation asynchronously
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                SectionStatsFileUtil.recalculateAggregateStats();
                 PointsCalculatorUtil.calculateAllPlayerPoints();
                 PointsCalculatorUtil.calculateAllSectionPoints();
             } catch (Exception e) {

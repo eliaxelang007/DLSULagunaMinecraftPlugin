@@ -75,6 +75,8 @@ public class TrackPlayerCommand implements CommandExecutor, Listener {
         target.sendMessage(ChatColor.RED + "⚠ You are being targeted by " + player.getName() + "! "
                 + ChatColor.GRAY + "Your location will begin to be broadcasted to their section in 2 minutes.");
 
+        sender.sendMessage(ChatColor.GREEN + "Now tracking player " + target.getName() + ". The tracking will start in 2 minutes.");
+
         // Start tracking
         BukkitRunnable trackerTask = new BukkitRunnable() {
             @Override

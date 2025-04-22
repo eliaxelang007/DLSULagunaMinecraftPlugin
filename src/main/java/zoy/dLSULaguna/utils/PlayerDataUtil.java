@@ -6,9 +6,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.potion.PotionEffectType;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.potion.PotionEffectType;
 import zoy.dLSULaguna.DLSULaguna;
 
 import java.io.File;
@@ -34,18 +34,14 @@ public class PlayerDataUtil {
     private static final Map<UUID, Integer> savedFoodLevel = new HashMap<>();
     private static final Map<UUID, Double> savedHealth = new HashMap<>();
 
-    /**
-     * Initialize the PlayerDataUtil with plugin instance.
-     */
+    /** Initialize the PlayerDataUtil with plugin instance. */
     public static void initialize(DLSULaguna pluginInstance) {
         plugin = pluginInstance;
         sectionKey = new NamespacedKey(plugin, "section_name");
         createPlayerStateFile();
     }
 
-    /**
-     * Create or load the player_states.yml file.
-     */
+    /** Create or load the player_states.yml file. */
     private static void createPlayerStateFile() {
         File file = new File(plugin.getDataFolder(), "player_states.yml");
         if (!file.exists()) {
@@ -61,9 +57,7 @@ public class PlayerDataUtil {
         playerStateConfig = YamlConfiguration.loadConfiguration(file);
     }
 
-    /**
-     * Get section for online or offline player by UUID.
-     */
+    /** Get section for online or offline player by UUID. */
     public static String getPlayerSection(UUID uuid) {
         Player online = plugin.getServer().getPlayer(uuid);
         if (online != null) {
@@ -72,9 +66,7 @@ public class PlayerDataUtil {
         return PlayerStatsFileUtil.findSectionByUUID(uuid.toString());
     }
 
-    /**
-     * Get section for an online player.
-     */
+    /** Get section for an online player. */
     public static String getPlayerSection(Player player) {
         if (plugin == null || sectionKey == null || player == null) return null;
         PersistentDataContainer container = player.getPersistentDataContainer();
@@ -83,22 +75,17 @@ public class PlayerDataUtil {
                 : null;
     }
 
-    /**
-     * Set section for online or offline player by UUID.
-     */
+    /** Set section for online or offline player by UUID. */
     public static void setPlayerSection(UUID uuid, String section) {
         Player online = plugin.getServer().getPlayer(uuid);
         if (online != null) {
             setPlayerSection(online, section);
         } else {
-            // Queue offline assignment in stats file
             PlayerStatsFileUtil.setStatRaw(uuid, "section_name", section);
         }
     }
 
-    /**
-     * Set section for an online player.
-     */
+    /** Set section for an online player. */
     public static void setPlayerSection(Player player, String section) {
         if (plugin == null || sectionKey == null || player == null) return;
         PersistentDataContainer container = player.getPersistentDataContainer();
@@ -109,210 +96,183 @@ public class PlayerDataUtil {
         }
     }
 
-    /**
-     * Check if a player is online.
-     */
+    /** Check if a player is online. */
     public static boolean isPlayerOnline(Player player) {
         if (plugin == null || player == null) return false;
         return plugin.getServer().getPlayer(player.getUniqueId()) != null;
     }
 
-    /**
-     * Check if a player is online by UUID.
-     */
+    /** Check if a player is online by UUID. */
     public static boolean isPlayerOnline(UUID uuid) {
         if (plugin == null) return false;
         return plugin.getServer().getPlayer(uuid) != null;
     }
 
-    /**
-     * Remove section data for an online player.
-     */
+    /** Remove section data for an online player. */
     public static void removePlayerSectionData(Player player) {
         setPlayerSection(player, null);
     }
 
-    /**
-     * Remove section data for a player by UUID.
-     */
+    /** Remove section data for a player by UUID. */
     public static void removePlayerSectionData(UUID uuid) {
         setPlayerSection(uuid, null);
     }
 
-    /**
-     * Load a player's saved state into memory.
-     */
-    public static void loadPlayerState(UUID playerUUID) {
+    /** Save a player's current state to disk and memory. */
+    public static void savePlayerState(UUID uuid) {
         if (playerStateConfig == null) return;
-        String key = playerUUID.toString();
-        if (!playerStateConfig.contains(key)) return;
-        try {
-            savedInventories.put(playerUUID,
-                    deserializeItemStackArray(playerStateConfig.getList(key + ".inventory")));
-            savedArmor.put(playerUUID,
-                    deserializeItemStackArray(playerStateConfig.getList(key + ".armor")));
-            String worldName = playerStateConfig.getString(key + ".location.world");
-            World world = plugin.getServer().getWorld(worldName);
-            Location loc = new Location(world,
-                    playerStateConfig.getDouble(key + ".location.x"),
-                    playerStateConfig.getDouble(key + ".location.y"),
-                    playerStateConfig.getDouble(key + ".location.z"));
-            savedLocations.put(playerUUID, loc);
-            savedGameModes.put(playerUUID,
-                    GameMode.valueOf(playerStateConfig.getString(key + ".gameMode", "SURVIVAL")));
-            savedEffects.put(playerUUID,
-                    deserializePotionEffects(playerStateConfig.getList(key + ".effects")));
-            savedExp.put(playerUUID, (float) playerStateConfig.getDouble(key + ".exp"));
-            savedLevel.put(playerUUID, playerStateConfig.getInt(key + ".level"));
-            savedFoodLevel.put(playerUUID, playerStateConfig.getInt(key + ".foodLevel"));
-            savedHealth.put(playerUUID, playerStateConfig.getDouble(key + ".health"));
-        } catch (Exception e) {
-            plugin.getLogger().warning("Failed to load data for UUID: " + playerUUID);
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Save a player's current state to disk.
-     */
-    public static void savePlayerState(UUID playerUUID) {
-        if (playerStateConfig == null) return;
-        Player player = Bukkit.getPlayer(playerUUID);
+        Player player = Bukkit.getPlayer(uuid);
         if (player == null || !player.isOnline()) {
-            plugin.getLogger().warning("Attempted to save state for offline player: " + playerUUID);
+            plugin.getLogger().warning("Attempted to save state for offline player: " + uuid);
             return;
         }
-        String key = playerUUID.toString();
-        savedInventories.put(playerUUID, player.getInventory().getContents());
-        savedArmor.put(playerUUID, player.getInventory().getArmorContents());
-        savedLocations.put(playerUUID, player.getLocation());
-        savedGameModes.put(playerUUID, player.getGameMode());
-        savedEffects.put(playerUUID, new ArrayList<>(player.getActivePotionEffects()));
-        savedExp.put(playerUUID, player.getExp());
-        savedLevel.put(playerUUID, player.getLevel());
-        savedFoodLevel.put(playerUUID, player.getFoodLevel());
-        savedHealth.put(playerUUID, player.getHealth());
+
+        // Cache in memory
+        savedInventories.put(uuid, player.getInventory().getContents());
+        savedArmor.put(uuid, player.getInventory().getArmorContents());
+        savedLocations.put(uuid, player.getLocation());
+        savedGameModes.put(uuid, player.getGameMode());
+        savedEffects.put(uuid, new ArrayList<>(player.getActivePotionEffects()));
+        savedExp.put(uuid, player.getExp());
+        savedLevel.put(uuid, player.getLevel());
+        savedFoodLevel.put(uuid, player.getFoodLevel());
+        savedHealth.put(uuid, player.getHealth());
+
+        // Persist to YAML
         try {
-            playerStateConfig.set(key + ".inventory", serializeItemStackArray(savedInventories.get(playerUUID)));
-            playerStateConfig.set(key + ".armor", serializeItemStackArray(savedArmor.get(playerUUID)));
-            Location loc = savedLocations.get(playerUUID);
-            if (loc != null) {
-                playerStateConfig.set(key + ".location.world", loc.getWorld().getName());
-                playerStateConfig.set(key + ".location.x", loc.getX());
-                playerStateConfig.set(key + ".location.y", loc.getY());
-                playerStateConfig.set(key + ".location.z", loc.getZ());
-            }
-            playerStateConfig.set(key + ".gameMode", savedGameModes.get(playerUUID).name());
-            playerStateConfig.set(key + ".effects", serializePotionEffects(savedEffects.get(playerUUID)));
-            playerStateConfig.set(key + ".exp", savedExp.get(playerUUID));
-            playerStateConfig.set(key + ".level", savedLevel.get(playerUUID));
-            playerStateConfig.set(key + ".foodLevel", savedFoodLevel.get(playerUUID));
-            playerStateConfig.set(key + ".health", savedHealth.get(playerUUID));
+            playerStateConfig.set(uuid + ".inventory", Arrays.asList(player.getInventory().getContents()));
+            playerStateConfig.set(uuid + ".armor", Arrays.asList(player.getInventory().getArmorContents()));
+
+            Location loc = player.getLocation();
+            playerStateConfig.set(uuid + ".location.world", loc.getWorld().getName());
+            playerStateConfig.set(uuid + ".location.x", loc.getX());
+            playerStateConfig.set(uuid + ".location.y", loc.getY());
+            playerStateConfig.set(uuid + ".location.z", loc.getZ());
+
+            playerStateConfig.set(uuid + ".gameMode", player.getGameMode().name());
+            playerStateConfig.set(uuid + ".effects", serializePotionEffects(player.getActivePotionEffects()));
+            playerStateConfig.set(uuid + ".exp", player.getExp());
+            playerStateConfig.set(uuid + ".level", player.getLevel());
+            playerStateConfig.set(uuid + ".foodLevel", player.getFoodLevel());
+            playerStateConfig.set(uuid + ".health", player.getHealth());
+
             playerStateConfig.save(playerStateFile);
         } catch (IOException e) {
-            plugin.getLogger().severe("Failed to save player state for UUID: " + playerUUID);
+            plugin.getLogger().severe("Failed to save player state for UUID: " + uuid);
             e.printStackTrace();
         }
     }
 
-    /**
-     * Restore a player's saved state from memory.
-     */
+    /** Load a player's saved state into memory from disk. */
+    public static void loadPlayerState(UUID uuid) {
+        if (playerStateConfig == null) return;
+        if (!playerStateConfig.contains(uuid.toString())) return;
+
+        // Inventory
+        List<?> invList = playerStateConfig.getList(uuid + ".inventory");
+        if (invList != null) {
+            ItemStack[] inv = invList.stream()
+                    .filter(o -> o instanceof ItemStack)
+                    .map(o -> (ItemStack) o)
+                    .toArray(ItemStack[]::new);
+            savedInventories.put(uuid, inv);
+        }
+
+        // Armor
+        List<?> armList = playerStateConfig.getList(uuid + ".armor");
+        if (armList != null) {
+            ItemStack[] armor = armList.stream()
+                    .filter(o -> o instanceof ItemStack)
+                    .map(o -> (ItemStack) o)
+                    .toArray(ItemStack[]::new);
+            savedArmor.put(uuid, armor);
+        }
+
+        // Location
+        String worldName = playerStateConfig.getString(uuid + ".location.world");
+        World world = Bukkit.getWorld(worldName);
+        double x = playerStateConfig.getDouble(uuid + ".location.x");
+        double y = playerStateConfig.getDouble(uuid + ".location.y");
+        double z = playerStateConfig.getDouble(uuid + ".location.z");
+        savedLocations.put(uuid, new Location(world, x, y, z));
+
+        // GameMode
+        savedGameModes.put(uuid, GameMode.valueOf(
+                playerStateConfig.getString(uuid + ".gameMode", "SURVIVAL")));
+
+        // Effects
+        List<PotionEffect> effects = deserializePotionEffects(
+                playerStateConfig.getList(uuid + ".effects"));
+        savedEffects.put(uuid, effects);
+
+        savedExp.put(uuid, (float) playerStateConfig.getDouble(uuid + ".exp"));
+        savedLevel.put(uuid, playerStateConfig.getInt(uuid + ".level"));
+        savedFoodLevel.put(uuid, playerStateConfig.getInt(uuid + ".foodLevel"));
+        savedHealth.put(uuid, playerStateConfig.getDouble(uuid + ".health"));
+    }
+
+    /** Restore a player's saved state from memory. */
     public static void restorePlayerState(Player player) {
-        UUID playerUUID = player.getUniqueId();
-        if (savedInventories.containsKey(playerUUID)) {
-            player.getInventory().setContents(savedInventories.get(playerUUID));
-            player.getInventory().setArmorContents(savedArmor.get(playerUUID));
+        UUID uuid = player.getUniqueId();
+        if (savedInventories.containsKey(uuid)) {
+            player.getInventory().setContents(savedInventories.get(uuid));
         }
-        if (savedLocations.containsKey(playerUUID)) {
-            player.teleport(savedLocations.get(playerUUID));
+        if (savedArmor.containsKey(uuid)) {
+            player.getInventory().setArmorContents(savedArmor.get(uuid));
         }
-        if (savedGameModes.containsKey(playerUUID)) {
-            player.setGameMode(savedGameModes.get(playerUUID));
+        if (savedLocations.containsKey(uuid)) {
+            player.teleport(savedLocations.get(uuid));
         }
-        if (savedEffects.containsKey(playerUUID)) {
-            player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
-            player.addPotionEffects(savedEffects.get(playerUUID));
+        if (savedGameModes.containsKey(uuid)) {
+            player.setGameMode(savedGameModes.get(uuid));
         }
-        if (savedExp.containsKey(playerUUID)) {
-            player.setExp(savedExp.get(playerUUID));
+        if (savedEffects.containsKey(uuid)) {
+            player.getActivePotionEffects().forEach(e ->
+                    player.removePotionEffect(e.getType()));
+            player.addPotionEffects(savedEffects.get(uuid));
         }
-        if (savedLevel.containsKey(playerUUID)) {
-            player.setLevel(savedLevel.get(playerUUID));
+        if (savedExp.containsKey(uuid)) {
+            player.setExp(savedExp.get(uuid));
         }
-        if (savedFoodLevel.containsKey(playerUUID)) {
-            player.setFoodLevel(savedFoodLevel.get(playerUUID));
+        if (savedLevel.containsKey(uuid)) {
+            player.setLevel(savedLevel.get(uuid));
         }
-        if (savedHealth.containsKey(playerUUID)) {
-            player.setHealth(savedHealth.get(playerUUID));
+        if (savedFoodLevel.containsKey(uuid)) {
+            player.setFoodLevel(savedFoodLevel.get(uuid));
+        }
+        if (savedHealth.containsKey(uuid)) {
+            player.setHealth(savedHealth.get(uuid));
         }
         player.updateInventory();
         plugin.getLogger().info("Restored state for player: " + player.getName());
     }
 
-    /**
-     * Deserialize a list from YAML into an ItemStack array.
-     */
-    private static ItemStack[] deserializeItemStackArray(List<?> list) {
-        if (list == null) return new ItemStack[0];
-        return list.stream()
-                .filter(o -> o instanceof ItemStack)
-                .map(o -> (ItemStack) o)
-                .toArray(ItemStack[]::new);
-    }
-
-    /**
-     * Serialize an ItemStack array into a list of strings "MATERIAL:amount".
-     */
-    private static List<String> serializeItemStackArray(ItemStack[] items) {
-        List<String> list = new ArrayList<>();
-        if (items != null) {
-            for (ItemStack item : items) {
-                if (item != null) {
-                    list.add(item.getType() + ":" + item.getAmount());
-                }
-            }
+    /** Serialize potion effects into a list of maps for YAML. */
+    private static List<Map<String,Object>> serializePotionEffects(Collection<PotionEffect> effects) {
+        List<Map<String,Object>> list = new ArrayList<>();
+        for (PotionEffect effect : effects) {
+            Map<String,Object> map = new HashMap<>();
+            map.put("type", effect.getType().getName());
+            map.put("duration", effect.getDuration());
+            map.put("amplifier", effect.getAmplifier());
+            list.add(map);
         }
         return list;
     }
 
-    /**
-     * Deserialize a list of potion effect maps into PotionEffect objects.
-     */
+    /** Deserialize potion effects from YAML. */
     private static List<PotionEffect> deserializePotionEffects(List<?> list) {
         List<PotionEffect> effects = new ArrayList<>();
         if (list == null) return effects;
         for (Object obj : list) {
-            if (obj instanceof Map<?, ?> map) {
-                try {
-                    String type = (String) map.get("type");
-                    int duration = (int) map.get("duration");
-                    int amplifier = (int) map.get("amplifier");
-                    PotionEffectType pet = PotionEffectType.getByName(type);
-                    if (pet != null) {
-                        effects.add(new PotionEffect(pet, duration, amplifier));
-                    }
-                } catch (Exception ignored) {
-                }
+            if (obj instanceof Map<?,?> map) {
+                String type = (String) map.get("type");
+                int duration = (int) map.get("duration");
+                int amp = (int) map.get("amplifier");
+                PotionEffectType pet = PotionEffectType.getByName(type);
+                if (pet != null) effects.add(new PotionEffect(pet, duration, amp));
             }
         }
         return effects;
-    }
-
-    /**
-     * Serialize a list of PotionEffect into a list of maps for YAML.
-     */
-    private static List<Map<String, Object>> serializePotionEffects(List<PotionEffect> effects) {
-        List<Map<String, Object>> list = new ArrayList<>();
-        if (effects != null) {
-            for (PotionEffect effect : effects) {
-                Map<String, Object> map = new HashMap<>();
-                map.put("type", effect.getType().getName());
-                map.put("duration", effect.getDuration());
-                map.put("amplifier", effect.getAmplifier());
-                list.add(map);
-            }
-        }
-        return list;
     }
 }
