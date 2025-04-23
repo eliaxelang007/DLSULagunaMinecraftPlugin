@@ -11,6 +11,8 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
+import zoy.dLSULaguna.utils.SectionSerializable;
+
 import java.io.File;
 
 public class DoomsDay implements CommandExecutor {
@@ -56,7 +58,7 @@ public class DoomsDay implements CommandExecutor {
                                                                               // the section type?
         for (Player player : Bukkit.getOnlinePlayers()) {
             PersistentDataContainer container = player.getPersistentDataContainer();
-            if (container.has(sectionKey, PersistentDataType.STRING)) {
+            if (container.has(sectionKey, SectionSerializable.persistent)) {
                 container.remove(sectionKey);
             }
             player.sendMessage(ChatColor.DARK_RED + "☠ Your section data has been wiped by an admin ☠");

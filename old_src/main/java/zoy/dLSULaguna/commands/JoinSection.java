@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import zoy.dLSULaguna.DLSULaguna;
 import zoy.dLSULaguna.utils.Section;
 import zoy.dLSULaguna.utils.SectionFileUtil;
+import zoy.dLSULaguna.utils.SectionSerializable;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -59,24 +60,26 @@ public class JoinSection implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        final var sectionName = maybeSection.get().toString();
+        final var sectionToJoin = maybeSection.get();
 
         PersistentDataContainer playerData = player.getPersistentDataContainer();
         plugin.getLogger().info("Player " + player.getName() + " - Persistent Data Keys: " + playerData.getKeys());
-        plugin.getLogger().info("Player " + player.getName() + " - Current Section: "
-                + playerData.get(sectionKey, PersistentDataType.STRING));
 
-        if (playerData.get(sectionKey, PersistentDataType.STRING) != null) {
-            String currentSection = playerData.get(sectionKey, PersistentDataType.STRING);
+        final var playerSection = playerData.get(sectionKey, SectionSerializable.persistent);
+
+        plugin.getLogger().info("Player " + player.getName() + " - Current Section: "
+                + playerSection);
+
+        if (playerSection != null) {
             player.sendMessage(
-                    "You are already in section " + currentSection + "! Please contact an admin if you made an error.");
+                    "You are already in section " + playerSection + "! Please contact an admin if you made an error.");
             player.sendMessage("Note: Your stats will be reset if you join a new section.");
             return true;
         }
 
-        playerData.set(sectionKey, PersistentDataType.STRING, sectionName);
-        playerStats.set(sectionName + "." + player.getUniqueId() + ".Username", player.getName());
-        player.sendMessage("You have joined section " + sectionName + "!");
+        playerData.set(sectionKey, SectionSerializable.persistent, sectionToJoin);
+        playerStats.set(sectionToJoin + "." + player.getUniqueId() + ".Username", player.getName());
+        player.sendMessage("You have joined section " + sectionToJoin + "!");
 
         try {
             playerStats.save(playerStatsFile);

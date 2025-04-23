@@ -1,4 +1,4 @@
-package zoy.dLSULaguna.utils;
+package zoy.dLSULaguna.section;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -73,7 +73,7 @@ enum Letter {
     }
 
     public static Optional<Letter> fromString(String letterString) {
-        return Optional.ofNullable(stringToLetter.get(letterString));
+        return Optional.ofNullable(stringToLetter.get(letterString.toUpperCase()));
     }
 }
 
@@ -110,6 +110,6 @@ public record Section(Strand strand, Grade grade, Letter letter) {
 
     @Override
     public final String toString() {
-        return "" + strand + grade + "-" + letter;
+        return String.format("%s%s-%s", strand, grade, letter);
     }
 }

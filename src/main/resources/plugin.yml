@@ -1,6 +1,6 @@
 name: DLSULaguna
 version: '1.1'
-main: zoy.dLSULaguna.DLSULaguna
+main: zoy.dLSULaguna.DLSULagunaPlugin
 api-version: '1.21'
 
 commands:

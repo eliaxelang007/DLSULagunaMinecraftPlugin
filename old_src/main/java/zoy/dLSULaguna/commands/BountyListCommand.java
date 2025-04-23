@@ -1,14 +1,11 @@
 package zoy.dLSULaguna.commands;
 
 import org.bukkit.ChatColor;
-import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
-import org.bukkit.persistence.PersistentDataType;
 import zoy.dLSULaguna.DLSULaguna;
 import zoy.dLSULaguna.utils.Section;
 
@@ -19,11 +16,9 @@ public class BountyListCommand implements CommandExecutor {
 
     private final DLSULaguna plugin;
     private final long cooldownDuration = 24 * 60 * 60 * 1000L; // 24 hours in milliseconds - MATCHES Bounties.java
-    private final NamespacedKey sectionKey;
 
     public BountyListCommand(DLSULaguna plugin) {
         this.plugin = plugin;
-        this.sectionKey = new NamespacedKey(plugin, "section_name");
     }
 
     private Optional<Section> getPlayerSection(UUID playerUuid) {
