@@ -1,4 +1,4 @@
-package zoy.dLSULaguna.section;
+package zoy.dLSULaguna;
 
 import java.util.HashMap;
 import java.util.Map;
