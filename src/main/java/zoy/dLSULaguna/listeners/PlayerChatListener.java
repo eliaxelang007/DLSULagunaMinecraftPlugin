@@ -7,27 +7,21 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
 import zoy.dLSULaguna.DLSULaguna;
 import zoy.dLSULaguna.commands.SectionChat;
 import zoy.dLSULaguna.utils.PlayerDataUtil;
 import zoy.dLSULaguna.utils.Section;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 public class PlayerChatListener implements Listener {
     private final DLSULaguna plugin;
-    private final SectionChat sectionChat;
     private File donatorsFile;
     private FileConfiguration donatorsConfig;
 
     public PlayerChatListener(DLSULaguna plugin, SectionChat sectionChat) {
         this.plugin = plugin;
-        this.sectionChat = sectionChat;
         donatorsFile = new File(plugin.getDataFolder(), "donators.yml");
         donatorsConfig = YamlConfiguration.loadConfiguration(donatorsFile);
         if (!donatorsFile.exists()) {
@@ -40,10 +34,10 @@ public class PlayerChatListener implements Listener {
         }
     }
 
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        Player player = event.getPlayer();
-    }
+    // @EventHandler
+    // public void onPlayerJoin(PlayerJoinEvent event) {
+    // Player player = event.getPlayer();
+    // }
 
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {

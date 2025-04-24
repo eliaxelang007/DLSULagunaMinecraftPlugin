@@ -52,8 +52,7 @@ public class DoomsDay implements CommandExecutor {
         }
 
         // Wipe player persistent data
-        NamespacedKey sectionKey = new NamespacedKey(plugin, "section_name"); // Does this also need to be wrapped in
-                                                                              // the section type?
+        NamespacedKey sectionKey = new NamespacedKey(plugin, "section_name");
         for (Player player : Bukkit.getOnlinePlayers()) {
             PersistentDataContainer container = player.getPersistentDataContainer();
             if (container.has(sectionKey, PersistentDataType.STRING)) {

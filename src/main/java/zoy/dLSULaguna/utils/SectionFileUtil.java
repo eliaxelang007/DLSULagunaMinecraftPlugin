@@ -7,8 +7,6 @@ import zoy.dLSULaguna.DLSULaguna;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class SectionFileUtil {
@@ -51,7 +49,9 @@ public class SectionFileUtil {
         }
     }
 
-    public static void deleteSection(String sectionName) {
+    public static void deleteSection(Section section) {
+        final var sectionName = section.toString();
+
         ConfigurationSection sectionsSection = sectionConfig.getConfigurationSection("sections");
         if (sectionsSection != null && sectionsSection.contains(sectionName)) {
             sectionsSection.set(sectionName, null); // Set to null to delete the key

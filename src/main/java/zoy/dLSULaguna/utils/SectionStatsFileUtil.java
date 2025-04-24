@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * Utility class for direct interactions with the 'section_stats.yml' file.
@@ -20,7 +21,7 @@ public class SectionStatsFileUtil {
     private static DLSULaguna plugin;
     private static File sectionStatsFile;
     private static File playerStatsFile; // Needed for recalculation
-    private static File sectionsFile;
+    // private static File sectionsFile;
 
     /**
      * Initializes the utility class with the plugin instance and prepares file
@@ -33,7 +34,7 @@ public class SectionStatsFileUtil {
         plugin = pluginInstance;
         sectionStatsFile = new File(plugin.getDataFolder(), "section_stats.yml");
         playerStatsFile = new File(plugin.getDataFolder(), "players_stats.yml"); // Initialize player stats file ref too
-        sectionsFile = new File(plugin.getDataFolder(), "sections.yml");
+        // sectionsFile = new File(plugin.getDataFolder(), "sections.yml");
         // Optional: Create section_stats.yml if it doesn't exist
         /*
          * if (!sectionStatsFile.exists()) {
@@ -83,7 +84,7 @@ public class SectionStatsFileUtil {
      * @param change  The amount to add (can be negative). Must be Integer or
      *                Double.
      */
-    public static void increaseStat(String section, String statKey, Object change) {
+    public static void increaseStat(Section section, String statKey, Object change) {
         if (section == null || statKey == null)
             return;
 
@@ -113,7 +114,7 @@ public class SectionStatsFileUtil {
      * @param section The section identifier.
      * @param value   The new point value (should be Integer or compatible).
      */
-    public static void setPoints(String section, Object value) {
+    public static void setPoints(Section section, Object value) {
         if (section == null)
             return;
         FileConfiguration config = loadConfig();
@@ -130,7 +131,7 @@ public class SectionStatsFileUtil {
      * @param defaultValue The default value if not found.
      * @return The integer value or default.
      */
-    public static int getStatInt(String section, String statKey, int defaultValue) {
+    public static int getStatInt(Section section, String statKey, int defaultValue) {
         if (section == null || statKey == null)
             return defaultValue;
         FileConfiguration config = loadConfig();
@@ -145,7 +146,7 @@ public class SectionStatsFileUtil {
      * @param defaultValue The default value if not found.
      * @return The double value or default.
      */
-    public static double getStatDouble(String section, String statKey, double defaultValue) {
+    public static double getStatDouble(Section section, String statKey, double defaultValue) {
         if (section == null || statKey == null)
             return defaultValue;
         FileConfiguration config = loadConfig();
@@ -159,11 +160,11 @@ public class SectionStatsFileUtil {
      * @param section The section identifier.
      * @return The ConfigurationSection or null if not found.
      */
-    public static ConfigurationSection getSectionData(String section) {
+    public static ConfigurationSection getSectionData(Section section) {
         if (section == null)
             return null;
         FileConfiguration config = loadConfig();
-        return config.getConfigurationSection(section);
+        return config.getConfigurationSection(section.toString());
     }
 
     /**
@@ -171,9 +172,14 @@ public class SectionStatsFileUtil {
      * 
      * @return A Set of section keys.
      */
-    public static java.util.Set<String> getSectionKeys() {
+    public static java.util.Set<Section> getSectionKeys() {
         FileConfiguration config = loadConfig();
-        return config.getKeys(false);
+        return config.getKeys(false)
+                .stream()
+                .flatMap((sectionString) -> Section.fromString(sectionString).stream()) // Is it ok to discard the
+                                                                                        // sections that don't fit
+                                                                                        // the [Section] format?
+                .collect(Collectors.toSet());
     }
 
     /**
