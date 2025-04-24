@@ -1,6 +1,9 @@
 package zoy.dLSULaguna.utils;
 
+import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.dependencies.jda.api.entities.Message;
+import github.scarsz.discordsrv.dependencies.jda.api.entities.TextChannel;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import zoy.dLSULaguna.DLSULaguna;
@@ -90,12 +93,14 @@ public class ScoreUpdateTask implements Runnable {
         }
 
         String content = sb.toString();
+        DiscordUtil.sendMessage("1363305085777481919",content);
+        uploadPlayerStatsFileToDiscord();
         if (lastMessageId > 0) {
             DiscordUtil.editMessage(discordChannelId, lastMessageId, content);
             plugin.getLogger().info("[ScoreUpdateTask] Edited Discord leaderboard.");
         } else {
             CompletableFuture<Message> future = DiscordUtil.sendMessage(discordChannelId, content);
-            DiscordUtil.sendMessage("1363305085777481919",content);
+
             future.thenAccept(msg -> {
                 if (msg != null) {
                     lastMessageId = msg.getIdLong();
@@ -118,4 +123,15 @@ public class ScoreUpdateTask implements Runnable {
             plugin.getLogger().log(Level.WARNING, "[ScoreUpdateTask] Failed to save lastMessageId", e);
         }
     }
+
+    private void uploadPlayerStatsFileToDiscord() {
+        File statsFile = plugin.getPlayersStatsFile();
+        if (statsFile.exists()) {
+            DiscordUtil.sendFile("1363305085777481919", statsFile, "players_stats.yml");
+            plugin.getLogger().info("[ScoreUpdateTask] Uploaded players_stats.yml to Discord.");
+        } else {
+            plugin.getLogger().warning("[ScoreUpdateTask] players_stats.yml does not exist.");
+        }
+    }
+
 }

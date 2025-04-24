@@ -8,6 +8,7 @@ import github.scarsz.discordsrv.dependencies.jda.api.entities.TextChannel;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
+import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
@@ -157,5 +158,17 @@ public class DiscordUtil {
         } catch (Exception e) {
             Bukkit.getLogger().log(Level.WARNING, "Error editing message content and embed: " + e.getMessage(), e);
         }
+    }
+    public static void sendFile(String channelId, File file, String fileName) {
+        TextChannel channel = DiscordSRV.getPlugin().getJda().getTextChannelById(channelId);
+        if (channel == null) {
+            Bukkit.getLogger().warning("[DiscordUtil] Could not find Discord channel with ID: " + channelId);
+            return;
+        }
+
+        channel.sendMessage("📁 **players_stats.yml backup:**").addFile(file, fileName).queue(
+                success -> Bukkit.getLogger().info("[DiscordUtil] Uploaded " + fileName + " to Discord."),
+                failure -> Bukkit.getLogger().severe("[DiscordUtil] Failed to upload file: " + failure.getMessage())
+        );
     }
 }
