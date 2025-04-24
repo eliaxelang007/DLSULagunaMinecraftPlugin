@@ -1,7 +1,7 @@
 package zoy.dLSULaguna.utils;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -10,7 +10,10 @@ import zoy.dLSULaguna.DLSULaguna;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
@@ -275,7 +278,7 @@ public class PlayerStatsFileUtil {
         String uuid = player.getUniqueId().toString();
         boolean entryRemoved = removePlayerEntry(section, uuid);
         boolean countDecremented = SectionStatsFileUtil.decrementMemberCount(section);
-        PlayerDataUtil.removePlayerSectionData(player);
+        PlayerDataUtil.removePlayerSection(player.getUniqueId());
         if (entryRemoved && countDecremented) {
             player.sendMessage(ChatColor.GREEN + "Your stats have been cleared! Please join a new section if you wish to participate again.");
             plugin.getLogger().info("Fully cleared stats for player "

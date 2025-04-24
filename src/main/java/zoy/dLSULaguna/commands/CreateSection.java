@@ -6,9 +6,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import zoy.dLSULaguna.utils.SectionFileUtil;
-import zoy.dLSULaguna.utils.SectionStatsFileUtil;
-
-import java.io.IOException;
 
 public class CreateSection implements CommandExecutor {
 

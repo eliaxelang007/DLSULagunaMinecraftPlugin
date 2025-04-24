@@ -1,35 +1,40 @@
 package zoy.dLSULaguna.listeners;
 
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.*;
-import org.bukkit.event.*;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.scoreboard.*;
 import org.bukkit.scheduler.BukkitRunnable;
-
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 import zoy.dLSULaguna.DLSULaguna;
 import zoy.dLSULaguna.utils.PlayerDataUtil;
 import zoy.dLSULaguna.utils.PlayerStatsFileUtil;
-import zoy.dLSULaguna.utils.playerevents.BuildBattle;
 
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 
 public class PlayerStatTracker implements Listener {
@@ -155,12 +160,15 @@ public class PlayerStatTracker implements Listener {
         if (!isTrackedWorld(player.getWorld())) return;
 
         Location from = event.getFrom();
-        Location to   = event.getTo();
+        Location to = event.getTo();
         if (to != null
                 && (from.getBlockX() != to.getBlockX()
                 || from.getBlockY() != to.getBlockY()
                 || from.getBlockZ() != to.getBlockZ())) {
+
             double distance = from.distance(to);
+
+            // Still count exact distance per block, including Nether travel
             PlayerStatsFileUtil.increaseStat(player, "Distance", distance);
         }
     }

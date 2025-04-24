@@ -1,14 +1,18 @@
 package zoy.dLSULaguna.utils;
 
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.potion.PotionEffect;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.GameMode;
+import org.bukkit.NamespacedKey;
 import zoy.dLSULaguna.DLSULaguna;
 
 import java.io.File;
@@ -26,6 +30,7 @@ public class PlayerDataUtil {
     // State caches
     private static final Map<UUID, ItemStack[]> savedInventories = new HashMap<>();
     private static final Map<UUID, ItemStack[]> savedArmor = new HashMap<>();
+    private static final Map<UUID, ItemStack> savedOffhand = new HashMap<>();
     private static final Map<UUID, Location> savedLocations = new HashMap<>();
     private static final Map<UUID, GameMode> savedGameModes = new HashMap<>();
     private static final Map<UUID, List<PotionEffect>> savedEffects = new HashMap<>();
@@ -59,64 +64,49 @@ public class PlayerDataUtil {
 
     /** Get section for online or offline player by UUID. */
     public static String getPlayerSection(UUID uuid) {
-        Player online = plugin.getServer().getPlayer(uuid);
+        Player online = Bukkit.getPlayer(uuid);
         if (online != null) {
-            return getPlayerSection(online);
+            PersistentDataContainer container = online.getPersistentDataContainer();
+            return container.has(sectionKey, PersistentDataType.STRING)
+                    ? container.get(sectionKey, PersistentDataType.STRING)
+                    : null;
         }
-        return PlayerStatsFileUtil.findSectionByUUID(uuid.toString());
+        return getStatRaw(uuid, "section_name");
     }
 
-    /** Get section for an online player. */
+    /** Overloaded version for Player object */
     public static String getPlayerSection(Player player) {
-        if (plugin == null || sectionKey == null || player == null) return null;
-        PersistentDataContainer container = player.getPersistentDataContainer();
-        return container.has(sectionKey, PersistentDataType.STRING)
-                ? container.get(sectionKey, PersistentDataType.STRING)
-                : null;
+        return getPlayerSection(player.getUniqueId());
     }
 
     /** Set section for online or offline player by UUID. */
     public static void setPlayerSection(UUID uuid, String section) {
-        Player online = plugin.getServer().getPlayer(uuid);
+        Player online = Bukkit.getPlayer(uuid);
         if (online != null) {
-            setPlayerSection(online, section);
+            PersistentDataContainer container = online.getPersistentDataContainer();
+            if (section != null) container.set(sectionKey, PersistentDataType.STRING, section);
+            else container.remove(sectionKey);
         } else {
             PlayerStatsFileUtil.setStatRaw(uuid, "section_name", section);
         }
     }
 
-    /** Set section for an online player. */
-    public static void setPlayerSection(Player player, String section) {
-        if (plugin == null || sectionKey == null || player == null) return;
-        PersistentDataContainer container = player.getPersistentDataContainer();
-        if (section != null && !section.isEmpty()) {
-            container.set(sectionKey, PersistentDataType.STRING, section);
-        } else {
-            container.remove(sectionKey);
-        }
-    }
-
-    /** Check if a player is online. */
-    public static boolean isPlayerOnline(Player player) {
-        if (plugin == null || player == null) return false;
-        return plugin.getServer().getPlayer(player.getUniqueId()) != null;
-    }
-
-    /** Check if a player is online by UUID. */
-    public static boolean isPlayerOnline(UUID uuid) {
-        if (plugin == null) return false;
-        return plugin.getServer().getPlayer(uuid) != null;
-    }
-
-    /** Remove section data for an online player. */
-    public static void removePlayerSectionData(Player player) {
-        setPlayerSection(player, null);
-    }
-
-    /** Remove section data for a player by UUID. */
-    public static void removePlayerSectionData(UUID uuid) {
+    /** Remove section for online or offline player by UUID. */
+    public static void removePlayerSection(UUID uuid) {
         setPlayerSection(uuid, null);
     }
+
+    /** Get a raw stat value for an online or offline player by key. */
+    public static String getStatRaw(UUID uuid, String statKey) {
+        Object raw = PlayerStatsFileUtil.getStat(uuid, getPlayerSection(uuid), statKey);
+        return raw != null ? raw.toString() : null;
+    }
+
+    /** Get a raw stat value for an online player by key. */
+    public static String getStatRaw(Player player, String statKey) {
+        return getStatRaw(player.getUniqueId(), statKey);
+    }
+
 
     /** Save a player's current state to disk and memory. */
     public static void savePlayerState(UUID uuid) {
@@ -130,6 +120,7 @@ public class PlayerDataUtil {
         // Cache in memory
         savedInventories.put(uuid, player.getInventory().getContents());
         savedArmor.put(uuid, player.getInventory().getArmorContents());
+        savedOffhand.put(uuid, player.getInventory().getItemInOffHand());
         savedLocations.put(uuid, player.getLocation());
         savedGameModes.put(uuid, player.getGameMode());
         savedEffects.put(uuid, new ArrayList<>(player.getActivePotionEffects()));
@@ -142,6 +133,7 @@ public class PlayerDataUtil {
         try {
             playerStateConfig.set(uuid + ".inventory", Arrays.asList(player.getInventory().getContents()));
             playerStateConfig.set(uuid + ".armor", Arrays.asList(player.getInventory().getArmorContents()));
+            playerStateConfig.set(uuid + ".offhand", player.getInventory().getItemInOffHand());
 
             Location loc = player.getLocation();
             playerStateConfig.set(uuid + ".location.world", loc.getWorld().getName());
@@ -165,8 +157,7 @@ public class PlayerDataUtil {
 
     /** Load a player's saved state into memory from disk. */
     public static void loadPlayerState(UUID uuid) {
-        if (playerStateConfig == null) return;
-        if (!playerStateConfig.contains(uuid.toString())) return;
+        if (playerStateConfig == null || !playerStateConfig.contains(uuid.toString())) return;
 
         // Inventory
         List<?> invList = playerStateConfig.getList(uuid + ".inventory");
@@ -188,6 +179,10 @@ public class PlayerDataUtil {
             savedArmor.put(uuid, armor);
         }
 
+        // Offhand
+        ItemStack off = playerStateConfig.getItemStack(uuid + ".offhand");
+        if (off != null) savedOffhand.put(uuid, off);
+
         // Location
         String worldName = playerStateConfig.getString(uuid + ".location.world");
         World world = Bukkit.getWorld(worldName);
@@ -201,48 +196,65 @@ public class PlayerDataUtil {
                 playerStateConfig.getString(uuid + ".gameMode", "SURVIVAL")));
 
         // Effects
-        List<PotionEffect> effects = deserializePotionEffects(
-                playerStateConfig.getList(uuid + ".effects"));
-        savedEffects.put(uuid, effects);
+        List<?> effectList = playerStateConfig.getList(uuid + ".effects");
+        if (effectList != null) {
+            List<PotionEffect> effects = deserializePotionEffects(effectList);
+            savedEffects.put(uuid, effects);
+        }
 
-        savedExp.put(uuid, (float) playerStateConfig.getDouble(uuid + ".exp"));
-        savedLevel.put(uuid, playerStateConfig.getInt(uuid + ".level"));
-        savedFoodLevel.put(uuid, playerStateConfig.getInt(uuid + ".foodLevel"));
-        savedHealth.put(uuid, playerStateConfig.getDouble(uuid + ".health"));
+        // Exp, Level, Food, Health
+        savedExp.put(uuid, (float) playerStateConfig.getDouble(uuid + ".exp", 0.0));
+        savedLevel.put(uuid, playerStateConfig.getInt(uuid + ".level", 0));
+        savedFoodLevel.put(uuid, playerStateConfig.getInt(uuid + ".foodLevel", 20));
+        savedHealth.put(uuid, playerStateConfig.getDouble(uuid + ".health", 20.0));
     }
 
     /** Restore a player's saved state from memory. */
     public static void restorePlayerState(Player player) {
         UUID uuid = player.getUniqueId();
+
+        // Clear inventory slots to avoid duplication
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(null);
+        player.getInventory().setItemInOffHand(null);
+
+        // Restore inventory contents
         if (savedInventories.containsKey(uuid)) {
             player.getInventory().setContents(savedInventories.get(uuid));
         }
+
+        // Restore armor slots
         if (savedArmor.containsKey(uuid)) {
             player.getInventory().setArmorContents(savedArmor.get(uuid));
         }
+
+        // Restore offhand item
+        if (savedOffhand.containsKey(uuid)) {
+            player.getInventory().setItemInOffHand(savedOffhand.get(uuid));
+        }
+
+        // Restore location
         if (savedLocations.containsKey(uuid)) {
             player.teleport(savedLocations.get(uuid));
         }
+
+        // Restore gamemode
         if (savedGameModes.containsKey(uuid)) {
             player.setGameMode(savedGameModes.get(uuid));
         }
+
+        // Restore potion effects
         if (savedEffects.containsKey(uuid)) {
-            player.getActivePotionEffects().forEach(e ->
-                    player.removePotionEffect(e.getType()));
+            player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
             player.addPotionEffects(savedEffects.get(uuid));
         }
-        if (savedExp.containsKey(uuid)) {
-            player.setExp(savedExp.get(uuid));
-        }
-        if (savedLevel.containsKey(uuid)) {
-            player.setLevel(savedLevel.get(uuid));
-        }
-        if (savedFoodLevel.containsKey(uuid)) {
-            player.setFoodLevel(savedFoodLevel.get(uuid));
-        }
-        if (savedHealth.containsKey(uuid)) {
-            player.setHealth(savedHealth.get(uuid));
-        }
+
+        // Restore misc state
+        if (savedExp.containsKey(uuid)) player.setExp(savedExp.get(uuid));
+        if (savedLevel.containsKey(uuid)) player.setLevel(savedLevel.get(uuid));
+        if (savedFoodLevel.containsKey(uuid)) player.setFoodLevel(savedFoodLevel.get(uuid));
+        if (savedHealth.containsKey(uuid)) player.setHealth(savedHealth.get(uuid));
+
         player.updateInventory();
         plugin.getLogger().info("Restored state for player: " + player.getName());
     }
@@ -261,6 +273,7 @@ public class PlayerDataUtil {
     }
 
     /** Deserialize potion effects from YAML. */
+    @SuppressWarnings("unchecked")
     private static List<PotionEffect> deserializePotionEffects(List<?> list) {
         List<PotionEffect> effects = new ArrayList<>();
         if (list == null) return effects;

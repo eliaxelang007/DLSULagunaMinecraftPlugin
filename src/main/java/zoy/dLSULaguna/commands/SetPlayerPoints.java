@@ -57,19 +57,15 @@ public class SetPlayerPoints implements CommandExecutor {
         String path = victimSection + "." + victimUUID + "." + category;
 
         // Check if the category already exists for the player
-        if (playerStatsConfig.contains(path)) {
-            playerStatsConfig.set(path, points);
-            try {
-                playerStatsConfig.save(playerStatsFile);
-                sender.sendMessage(ChatColor.GREEN + "Updated " + category + " points for " + victimName + " to " + points + ".");
-            } catch (IOException e) {
-                plugin.getLogger().severe("Could not save to players_stats.yml!");
-                e.printStackTrace();
-                sender.sendMessage(ChatColor.RED + "An error occurred while saving player stats.");
-                return false;
-            }
-        } else {
-            sender.sendMessage(ChatColor.YELLOW + "Category '" + category + "' does not exist for player '" + victimName + "'. No changes made.");
+        playerStatsConfig.set(path, points);
+        try {
+            playerStatsConfig.save(playerStatsFile);
+            sender.sendMessage(ChatColor.GREEN + "Set " + category + " points for " + victimName + " to " + points + ".");
+        } catch (IOException e) {
+            plugin.getLogger().severe("Could not save to players_stats.yml!");
+            e.printStackTrace();
+            sender.sendMessage(ChatColor.RED + "An error occurred while saving player stats.");
+            return false;
         }
 
         return true;

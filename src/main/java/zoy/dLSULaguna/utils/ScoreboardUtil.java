@@ -2,77 +2,60 @@ package zoy.dLSULaguna.utils;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.scoreboard.*;
 import org.bukkit.entity.Player;
-import zoy.dLSULaguna.DLSULaguna;
-import zoy.dLSULaguna.utils.SectionStatsFileUtil;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.scoreboard.*;
 
-import java.util.Set;
-import java.util.logging.Level;
+import java.util.Map;
 
-/**
- * Utility class for managing and displaying the in-game sidebar scoreboard
- * showing section statistics in a thread-safe manner.
- */
 public class ScoreboardUtil {
-    private static DLSULaguna plugin;
+    private static Plugin plugin;
 
-    public static void initialize(DLSULaguna pluginInstance) {
+    public static void initialize(Plugin pluginInstance) {
         plugin = pluginInstance;
     }
 
     /**
-     * Starts periodic updates of the section leaderboard on the main thread.
-     * @param trackedStat The statistic key to display (e.g., "Points").
-     * @param title The sidebar title.
-     * @param intervalTicks The interval between updates, in ticks.
+     * Updates one persistent scoreboard object every intervalTicks,
+     * reading scores from a pre‑filled cache.
      */
-    public static void startAutoDisplay(String trackedStat, String title, long intervalTicks) {
-        if (plugin == null) {
-            throw new IllegalStateException("ScoreboardUtil not initialized");
-        }
-        // Schedule entirely on the main thread to avoid async scoreboard operations
+    public static void startAutoDisplayFromCache(
+            Plugin plugin,
+            String unusedTrackedStat,
+            String title,
+            long intervalTicks,
+            Map<String,Integer> cache
+    ) {
+        ScoreboardManager mgr = Bukkit.getScoreboardManager();
+        if (mgr == null) return;
+
+        // create once and reuse
+        Scoreboard board = mgr.getNewScoreboard();
+        Objective obj   = board.registerNewObjective("sectionStats", Criteria.DUMMY, title);
+        obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+
+        // schedule on main thread only the scoreboard updates
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            ScoreboardManager manager = Bukkit.getScoreboardManager();
-            if (manager == null) return;
-
-            Scoreboard board = manager.getNewScoreboard();
-            Objective obj = board.registerNewObjective("sectionStats", Criteria.DUMMY, title);
-            obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-
-            Set<String> sections = SectionStatsFileUtil.getSectionKeys();
-            if (sections.isEmpty()) {
-                obj.getScore(ChatColor.GRAY + "No sections found").setScore(0);
-            } else {
-                for (String sect : sections) {
-                    ConfigurationSection data = SectionStatsFileUtil.getSectionData(sect);
-                    int pts = data != null ? data.getInt(trackedStat, 0) : 0;
-                    obj.getScore(formatName(sect)).setScore(pts);
-                }
+            // clear old scores
+            for (String entry : board.getEntries()) {
+                board.resetScores(entry);
             }
 
-            // Apply to all online players
+            if (cache.isEmpty()) {
+                obj.getScore(ChatColor.GRAY + "No data").setScore(0);
+            } else {
+                cache.forEach((sect, pts) ->
+                        obj.getScore(formatName(sect)).setScore(pts)
+                );
+            }
+
+            // push to all players
             for (Player p : Bukkit.getOnlinePlayers()) {
-                try {
-                    p.setScoreboard(board);
-                } catch (Exception e) {
-                    plugin.getLogger().log(Level.SEVERE, "Failed to set scoreboard for " + p.getName(), e);
-                }
+                p.setScoreboard(board);
             }
         }, 0L, intervalTicks);
     }
 
-    /**
-     * One-off display: builds and shows immediately (no repeat).
-     */
-    public static void displayOnce(String trackedStat, String title) {
-        startAutoDisplay(trackedStat, title, Long.MAX_VALUE);
-    }
-
-    /**
-     * Ensures a safe-length display name.
-     */
     private static String formatName(String key) {
         return key.length() > 40 ? key.substring(0, 40) : key;
     }

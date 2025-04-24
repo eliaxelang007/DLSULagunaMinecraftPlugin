@@ -1,19 +1,18 @@
 package zoy.dLSULaguna.utils;
 
 import github.scarsz.discordsrv.dependencies.jda.api.entities.Message;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import zoy.dLSULaguna.DLSULaguna;
+
 import java.io.File;
 import java.io.IOException;
-import java.util.Set;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import zoy.dLSULaguna.DLSULaguna;
 
 /**
  * Scheduled task for updating Discord and in-game leaderboards.
@@ -54,11 +53,6 @@ public class ScoreUpdateTask implements Runnable {
             // 4) Update Discord message (async)
             updateDiscordLeaderboard();
 
-            // 5) Update in-game scoreboard (sync)
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                String title = ChatColor.YELLOW + "" + ChatColor.BOLD + "Points";
-                ScoreboardUtil.displayOnce("Points", title);
-            });
 
         } catch (Exception e) {
             plugin.getLogger().log(Level.SEVERE, "[ScoreUpdateTask] Unexpected error:", e);

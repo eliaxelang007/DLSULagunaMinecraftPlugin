@@ -13,8 +13,6 @@ import zoy.dLSULaguna.commands.SectionChat;
 import zoy.dLSULaguna.utils.PlayerDataUtil;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 public class PlayerChatListener implements Listener {

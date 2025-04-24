@@ -1,6 +1,5 @@
 package zoy.dLSULaguna.utils.playerevents;
 
-import github.scarsz.discordsrv.dependencies.jda.api.entities.Message;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
@@ -9,6 +8,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -17,17 +18,12 @@ import org.bukkit.persistence.PersistentDataType;
 import zoy.dLSULaguna.DLSULaguna;
 import zoy.dLSULaguna.commands.BountyListCommand;
 import zoy.dLSULaguna.utils.PlayerStatsFileUtil;
-import zoy.dLSULaguna.utils.ScoreboardUtil;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 
 /**
@@ -152,7 +148,6 @@ public class Bounties implements Listener, CommandExecutor {
         currentBounties.put(victim.getUniqueId(), new Bounty(b.target, b.username, b.reward, now));
         saveBountiesAsync();
         // Refresh in-game leaderboard
-        ScoreboardUtil.displayOnce("Points", ChatColor.YELLOW+"Section Points");
     }
 
     @Override

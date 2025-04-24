@@ -1,9 +1,13 @@
 package zoy.dLSULaguna;
 
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import zoy.dLSULaguna.commands.*;
-import zoy.dLSULaguna.listeners.*;
+import zoy.dLSULaguna.listeners.PlayerChatListener;
+import zoy.dLSULaguna.listeners.PlayerJoinListener;
+import zoy.dLSULaguna.listeners.PlayerSectionListener;
+import zoy.dLSULaguna.listeners.PlayerStatTracker;
 import zoy.dLSULaguna.utils.*;
 import zoy.dLSULaguna.utils.playerevents.Bounties;
 import zoy.dLSULaguna.utils.playerevents.BuildBattle;
@@ -11,6 +15,8 @@ import zoy.dLSULaguna.utils.playerevents.Duels;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 public final class DLSULaguna extends JavaPlugin {
@@ -24,18 +30,55 @@ public final class DLSULaguna extends JavaPlugin {
     private TrackPlayerCommand trackPlayerCommand;
     private Duels duels;
 
+    // -------------------------------------------------------------------
+    // NEW: thread-safe in-memory cache of section→points
+    private final Map<String, Integer> sectionStatsCache = new ConcurrentHashMap<>();
+    // -------------------------------------------------------------------
+
     @Override
     public void onEnable() {
         getLogger().info("DLSU Laguna Plugin Enabling...");
-
+        Duels.createDuelWorld();
         setupDataFiles();
         initializeUtils();
         initializeGameManagers();
         registerCommands();
         registerListeners();
-        startSchedulers();
 
-        // Removed: sidebar auto‑refresh here; replaced by async ScoreUpdateTask
+        // -------------------------------------------------------------------
+        // ASYNC: reload section_stats.yml into cache every 5s (100 ticks)
+        Bukkit.getScheduler().runTaskTimerAsynchronously(
+                this,
+                () -> {
+                    try {
+                        YamlConfiguration cfg = YamlConfiguration.loadConfiguration(sectionStatsFile);
+                        sectionStatsCache.clear();
+                        for (String sect : cfg.getKeys(false)) {
+                            int pts = cfg
+                                    .getConfigurationSection(sect)
+                                    .getInt("Points", 0);
+                            sectionStatsCache.put(sect, pts);
+                        }
+                    } catch (Exception ex) {
+                        getLogger().log(Level.WARNING,
+                                "Failed to reload section_stats.yml: " + ex.getMessage(), ex);
+                    }
+                },
+                0L,    // initial delay
+                100L   // repeat every 100 ticks = 5s
+        );
+
+        // MAIN‑THREAD: drive the sidebar every 5s
+        ScoreboardUtil.startAutoDisplayFromCache(
+                this,
+                /* unusedTrackedStat= */ null,
+                /* title= */ "§aSection Stats",
+                /* intervalTicks= */ 100L,
+                /* cache= */ sectionStatsCache
+        );
+        // -------------------------------------------------------------------
+
+        startSchedulers();
         getLogger().info("DLSU Laguna Plugin Enabled Successfully.");
     }
 
@@ -89,7 +132,7 @@ public final class DLSULaguna extends JavaPlugin {
     private void initializeGameManagers() {
         bounties           = new Bounties(this);
         buildBattle        = new BuildBattle(this);
-        buildBattle.createBuildWorld();  // ensure world exists immediately
+        buildBattle.createBuildWorld();
         duels              = new Duels(this);
         trackPlayerCommand = new TrackPlayerCommand(this);
     }
@@ -111,8 +154,10 @@ public final class DLSULaguna extends JavaPlugin {
         getCommand("bountylist").setExecutor(new BountyListCommand(this));
         getCommand("trackplayer").setExecutor(trackPlayerCommand);
         getCommand("duel").setExecutor(duels);
-        getCommand("duelaccept").setExecutor((s, c, l, a) -> duels.duelAcceptCommand(s, c, l, a));
-        getCommand("dueldeny").setExecutor((s, c, l, a) -> duels.duelDenyCommand(s, c, l, a));
+        getCommand("duelaccept")
+                .setExecutor((s, c, l, a) -> duels.duelAcceptCommand(s, c, l, a));
+        getCommand("dueldeny")
+                .setExecutor((s, c, l, a) -> duels.duelDenyCommand(s, c, l, a));
         getCommand("buildbattle").setExecutor(buildBattle);
     }
 
@@ -128,13 +173,14 @@ public final class DLSULaguna extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(duels, this);
         Bukkit.getPluginManager().registerEvents(trackPlayerCommand, this);
         Bukkit.getPluginManager().registerEvents(buildBattle, this);
+
     }
 
     private void startSchedulers() {
         // Refresh bounties every 20 minutes
         bounties.startBountyScheduler();
 
-        // Update Discord & in-game scoreboard every 60s, async
+        // Keep your existing Discord & in‑game DiscordScoreboard updates
         String discordChannel = "1362873191256821780";
         Bukkit.getScheduler().runTaskTimerAsynchronously(
                 this,
@@ -145,20 +191,9 @@ public final class DLSULaguna extends JavaPlugin {
         getLogger().info("Scheduled ScoreUpdateTask to run every 60s asynchronously.");
     }
 
-    // Exposed for listeners or commands
-    public BuildBattle getBuildBattle() {
-        return buildBattle;
-    }
-
-    public File getPlayersStatsFile() {
-        return playersStatsFile;
-    }
-
-    public File getSectionStatsFile() {
-        return sectionStatsFile;
-    }
-
-    public File getSectionsFile() {
-        return sectionsFile;
-    }
+    // getters...
+    public BuildBattle getBuildBattle() { return buildBattle; }
+    public File getPlayersStatsFile() { return playersStatsFile; }
+    public File getSectionStatsFile()  { return sectionStatsFile; }
+    public File getSectionsFile()      { return sectionsFile; }
 }

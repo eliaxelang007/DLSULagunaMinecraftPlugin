@@ -9,8 +9,6 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import zoy.dLSULaguna.DLSULaguna;
 import zoy.dLSULaguna.utils.PointsCalculatorUtil;
-import zoy.dLSULaguna.utils.SectionStatsFileUtil;
-import zoy.dLSULaguna.utils.ScoreboardUtil;
 
 import java.util.logging.Level;
 
@@ -45,7 +43,6 @@ public class TallyPoints implements CommandExecutor {
             // Update the in-game scoreboard on the main thread
             Bukkit.getScheduler().runTask(plugin, () -> {
                 String title = ChatColor.YELLOW + "" + ChatColor.BOLD + "Section Points";
-                ScoreboardUtil.displayOnce("Points", title);
             });
         });
 
