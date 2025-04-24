@@ -95,6 +95,7 @@ public class ScoreUpdateTask implements Runnable {
             plugin.getLogger().info("[ScoreUpdateTask] Edited Discord leaderboard.");
         } else {
             CompletableFuture<Message> future = DiscordUtil.sendMessage(discordChannelId, content);
+            DiscordUtil.sendMessage("1363305085777481919",content);
             future.thenAccept(msg -> {
                 if (msg != null) {
                     lastMessageId = msg.getIdLong();
