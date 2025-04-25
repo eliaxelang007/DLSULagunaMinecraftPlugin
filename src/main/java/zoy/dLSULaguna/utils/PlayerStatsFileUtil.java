@@ -42,8 +42,8 @@ public class PlayerStatsFileUtil {
         );
     }
 
-    /** Reload config from disk before reads */
-    private static void reloadConfig() {
+    /** Reload config from disk before batch operations */
+    private static synchronized void reloadConfig() {
         config = YamlConfiguration.loadConfiguration(statsFile);
     }
 
@@ -71,9 +71,7 @@ public class PlayerStatsFileUtil {
         }
     }
 
-    /**
-     * Queue a stat update for an online player.
-     */
+    /** Queue a stat update for an online player. */
     public static void setStat(Player player, String statKey, Object value) {
         setStat(player.getUniqueId(), PlayerDataUtil.getPlayerSection(player), statKey, value);
     }
@@ -106,35 +104,31 @@ public class PlayerStatsFileUtil {
     /**
      * Increase a numeric stat for an online player.
      */
-    public static void increaseStat(Player player, String statKey, Number change) {
-        increaseStat(player.getUniqueId(), PlayerDataUtil.getPlayerSection(player), statKey, change);
+    public static void increaseStat(Player player, String statKey, Number delta) {
+        increaseStat(player.getUniqueId(), PlayerDataUtil.getPlayerSection(player), statKey, delta);
     }
 
     /**
      * Increase a stat by delta when you have uuid and section.
-     */
-    /**
-     * Increase a stat by delta when you have uuid and section.
-     * Now reads from the in‑memory cache first before falling back to disk,
-     * so multiple calls accumulate correctly.
+     * Reads from cache first, then disk, preserves integer vs double.
      */
     public static void increaseStat(UUID uuid, String section, String statKey, Number delta) {
         if (section == null) return;
 
-        // grab or create this player’s cache map
         Map<String, Object> cache = statCache.computeIfAbsent(uuid, k -> new ConcurrentHashMap<>());
 
-        // determine current value (cache first, then disk)
         Number current;
         if (cache.containsKey(statKey) && cache.get(statKey) instanceof Number) {
             current = (Number) cache.get(statKey);
         } else {
-            reloadConfig();
-            Object val = config.get(section + "." + uuid + "." + statKey);
-            current = (val instanceof Number) ? (Number) val : 0;
+            // use appropriate getter based on delta type
+            if (delta instanceof Double) {
+                current = getStatDouble(uuid, section, statKey, 0.0);
+            } else {
+                current = getStatInt(uuid, section, statKey, 0);
+            }
         }
 
-        // add delta (preserving integer vs double)
         Number result;
         if (current instanceof Double || delta instanceof Double) {
             result = current.doubleValue() + delta.doubleValue();
@@ -142,14 +136,11 @@ public class PlayerStatsFileUtil {
             result = current.intValue() + delta.intValue();
         }
 
-        // cache and mark for flush
         cache.put(statKey, result);
         pendingSave.add(uuid);
     }
 
-    /**
-     * Get a stat when you have uuid and section.
-     */
+    /** Get a stat when you have uuid and section. */
     public static Object getStat(UUID uuid, String section, String statKey) {
         if (section == null) return null;
         reloadConfig();
@@ -157,54 +148,37 @@ public class PlayerStatsFileUtil {
     }
 
     /**
-     * Get a cached or on‑disk integer stat.
-     * Checks the in‑memory cache first, then reloads and reads from players_stats.yml.
+     * Get a cached or on-disk integer stat.
      */
     public static int getStatInt(UUID uuid, String section, String statKey, int defaultValue) {
-        // cache first
         Map<String, Object> cache = statCache.get(uuid);
         if (cache != null && cache.containsKey(statKey) && cache.get(statKey) instanceof Number) {
             return ((Number) cache.get(statKey)).intValue();
         }
-        // fallback to disk
         reloadConfig();
         return config.getInt(section + "." + uuid + "." + statKey, defaultValue);
     }
 
-
     /**
-     * Get a cached or on‑disk double stat.
-     * Checks the in‑memory cache first, then reloads and reads from players_stats.yml.
+     * Get a cached or on-disk double stat.
      */
     public static double getStatDouble(UUID uuid, String section, String statKey, double defaultValue) {
-        // cache first
         Map<String, Object> cache = statCache.get(uuid);
         if (cache != null && cache.containsKey(statKey) && cache.get(statKey) instanceof Number) {
             return ((Number) cache.get(statKey)).doubleValue();
         }
-        // fallback to disk
         reloadConfig();
         return config.getDouble(section + "." + uuid + "." + statKey, defaultValue);
     }
 
-
-    /**
-     * Get an integer stat for a Player with default.
-     */
     public static int getStatInt(Player player, String statKey, int defaultValue) {
         return getStatInt(player.getUniqueId(), PlayerDataUtil.getPlayerSection(player), statKey, defaultValue);
     }
 
-    /**
-     * Get a double stat for a Player with default.
-     */
     public static double getStatDouble(Player player, String statKey, double defaultValue) {
         return getStatDouble(player.getUniqueId(), PlayerDataUtil.getPlayerSection(player), statKey, defaultValue);
     }
 
-    /**
-     * Remove a player's entire entry.
-     */
     public static boolean removePlayerEntry(String section, String uuid) {
         reloadConfig();
         if (section == null || uuid == null) return false;
@@ -221,9 +195,6 @@ public class PlayerStatsFileUtil {
         return false;
     }
 
-    /**
-     * Finds the section name containing the given UUID or returns null.
-     */
     public static String findSectionByUUID(String uuid) {
         reloadConfig();
         for (String section : config.getKeys(false)) {
@@ -235,9 +206,6 @@ public class PlayerStatsFileUtil {
         return null;
     }
 
-    /**
-     * Find UUID by player username across all sections.
-     */
     public static String findUUIDByUsername(String username) {
         reloadConfig();
         for (String section : config.getKeys(false)) {
@@ -254,9 +222,6 @@ public class PlayerStatsFileUtil {
         return null;
     }
 
-    /**
-     * Display a player's own points in chat.
-     */
     public static void showPlayerPoints(Player player) {
         String section = PlayerDataUtil.getPlayerSection(player);
         if (section == null) {
@@ -270,9 +235,6 @@ public class PlayerStatsFileUtil {
                 + "Your current contribution: " + ChatColor.AQUA + points + ChatColor.GREEN + " pts");
     }
 
-    /**
-     * Remove a player's section data and stats entries both.
-     */
     public static void clearPlayerStatsFully(Player player) {
         String section = PlayerDataUtil.getPlayerSection(player);
         String uuid = player.getUniqueId().toString();
@@ -290,9 +252,6 @@ public class PlayerStatsFileUtil {
         }
     }
 
-    /**
-     * Flush queued stat updates to disk.
-     */
     public static void flushPending() {
         Set<UUID> toSave = new HashSet<>(pendingSave);
         pendingSave.removeAll(toSave);

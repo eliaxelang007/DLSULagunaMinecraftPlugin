@@ -89,13 +89,9 @@ public class PlayerStatTracker implements Listener {
                 + "," + loc.getBlockZ();
     }
 
-    /**
-     * Only track stats outside the BuildBattle world.
-     */
+    /** Only track stats outside the BuildBattle world. */
     private boolean isTrackedWorld(World world) {
         World bbWorld = plugin.getBuildBattle().getBuildWorld();
-        // if the BuildBattle world isn't loaded yet, we *do* track everywhere.
-        // once it's loaded, skip stats in that world.
         return bbWorld == null || !world.equals(bbWorld);
     }
 
@@ -156,21 +152,25 @@ public class PlayerStatTracker implements Listener {
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
-        Player player = event.getPlayer();
-        if (!isTrackedWorld(player.getWorld())) return;
-
         Location from = event.getFrom();
-        Location to = event.getTo();
-        if (to != null
-                && (from.getBlockX() != to.getBlockX()
-                || from.getBlockY() != to.getBlockY()
-                || from.getBlockZ() != to.getBlockZ())) {
+        Location to   = event.getTo();
+        if (to == null) return;
 
-            double distance = from.distance(to);
+        // skip any portal/teleport that changes worlds
+        if (!from.getWorld().equals(to.getWorld())) return;
 
-            // Still count exact distance per block, including Nether travel
-            PlayerStatsFileUtil.increaseStat(player, "Distance", distance);
+        // only when they've actually moved a block
+        if (from.getBlockX()==to.getBlockX()
+                && from.getBlockY()==to.getBlockY()
+                && from.getBlockZ()==to.getBlockZ()) {
+            return;
         }
+
+        double distance = from.distance(to);
+        // ignore implausible huge jumps (likely teleport)
+        if (distance > 10) return;
+
+        PlayerStatsFileUtil.increaseStat(event.getPlayer(), "Distance", distance);
     }
 
     @EventHandler
@@ -203,10 +203,7 @@ public class PlayerStatTracker implements Listener {
         }
 
         Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
-        Team team = (newSection != null)
-                ? board.getTeam(newSection)
-                : null;
-
+        Team team = (newSection != null) ? board.getTeam(newSection) : null;
         if (team == null && newSection != null) {
             team = board.registerNewTeam(newSection);
         }
@@ -248,7 +245,10 @@ public class PlayerStatTracker implements Listener {
     private void startPingUpdater(Player player) {
         new BukkitRunnable() {
             @Override public void run() {
-                if (!player.isOnline()) { cancel(); return; }
+                if (!player.isOnline()) {
+                    cancel();
+                    return;
+                }
                 String section = PlayerDataUtil.getPlayerSection(player);
                 player.setPlayerListName("[" + section + "]" + player.getName() + " - " + player.getPing() + "ms");
             }
@@ -259,6 +259,7 @@ public class PlayerStatTracker implements Listener {
     public boolean isPlayerPlaced(Location loc) {
         return blockConfig.contains(locationToString(loc));
     }
+
     public void removePlacedBlock(Location loc) {
         blockConfig.set(locationToString(loc), null);
         maybeSaveBlockFile();

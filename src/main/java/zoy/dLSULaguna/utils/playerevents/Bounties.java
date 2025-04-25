@@ -25,7 +25,6 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
-
 /**
  * Manages periodic bounty assignments and handles bounty claims on death.
  */
@@ -97,24 +96,21 @@ public class Bounties implements Listener, CommandExecutor {
      * Refresh top-6 bounties based on player point standings.
      */
     public void refreshBounties() {
-        // Load stats file
         FileConfiguration stats = YamlConfiguration.loadConfiguration(plugin.getPlayersStatsFile());
         Map<UUID, Integer> points = new HashMap<>();
         for (String section : stats.getKeys(false)) {
             ConfigurationSection sec = stats.getConfigurationSection(section);
-            if (sec==null) continue;
+            if (sec == null) continue;
             for (String uid : sec.getKeys(false)) {
                 int pts = sec.getInt(uid + ".Points", 0);
-                try { points.put(UUID.fromString(uid), pts);} catch(Exception ignored){}
+                try { points.put(UUID.fromString(uid), pts); } catch (Exception ignored) {}
             }
         }
-        // Sort and pick top 6
         List<Map.Entry<UUID, Integer>> top = points.entrySet().stream()
                 .sorted(Map.Entry.<UUID,Integer>comparingByValue().reversed())
                 .limit(6)
                 .collect(Collectors.toList());
-        // Build new bounty map
-        Map<UUID,Bounty> updated = new HashMap<>();
+        Map<UUID, Bounty> updated = new HashMap<>();
         for (var e : top) {
             UUID uuid = e.getKey();
             OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
@@ -130,31 +126,39 @@ public class Bounties implements Listener, CommandExecutor {
     public void onDeath(PlayerDeathEvent ev) {
         Player victim = ev.getEntity();
         Player killer = victim.getKiller();
-        if (killer==null) return;
+        if (killer == null) return;
+
         Bounty b = currentBounties.get(victim.getUniqueId());
-        if (b==null) return;
-        long now=System.currentTimeMillis();
+        if (b == null) return;
+
+        long now = System.currentTimeMillis();
         if (now - b.lastClaim < claimCooldown) return;
-        // Cannot claim own section
+
         String vs = victim.getPersistentDataContainer().get(sectionKey, PersistentDataType.STRING);
         String ks = killer.getPersistentDataContainer().get(sectionKey, PersistentDataType.STRING);
-        if (Objects.equals(vs,ks)) return;
-        // Apply points
-        PlayerStatsFileUtil.increaseStat(victim, "Bounty-points", -b.reward);
-        PlayerStatsFileUtil.increaseStat(killer, "Bounty-points", b.reward);
-        // Broadcast
-        Bukkit.broadcastMessage(ChatColor.RED + killer.getName() + " claimed bounty on " + victim.getName() + " for " + b.reward + " pts!");
-        // Update record
+        if (Objects.equals(vs, ks)) return;
+
+        // Subtract from victim using raw set so other stats stay intact
+        int oldVictimBP = PlayerStatsFileUtil.getStatInt(victim, "Bounty-points", 0);
+        PlayerStatsFileUtil.setStatRaw(victim.getUniqueId(), "Bounty-points", oldVictimBP - b.reward);
+
+        // Add to killer
+        int oldKillerBP = PlayerStatsFileUtil.getStatInt(killer, "Bounty-points", 0);
+        PlayerStatsFileUtil.setStatRaw(killer.getUniqueId(), "Bounty-points", oldKillerBP + b.reward);
+
+        Bukkit.broadcastMessage(
+                ChatColor.RED + killer.getName() + " claimed bounty on "
+                        + victim.getName() + " for " + b.reward + " pts!");
+
         currentBounties.put(victim.getUniqueId(), new Bounty(b.target, b.username, b.reward, now));
         saveBountiesAsync();
-        // Refresh in-game leaderboard
     }
 
     @Override
     public boolean onCommand(CommandSender s, Command c, String l, String[] a) {
         if ("bountylist".equalsIgnoreCase(c.getName())) {
-            BountyListCommand cmd = (BountyListCommand)plugin.getCommand("bountylist").getExecutor();
-            if (cmd!=null) cmd.sendBountyList(s);
+            BountyListCommand cmd = (BountyListCommand) plugin.getCommand("bountylist").getExecutor();
+            if (cmd != null) cmd.sendBountyList(s);
             return true;
         }
         return false;
@@ -164,6 +168,6 @@ public class Bounties implements Listener, CommandExecutor {
      * Starts automatic bounty refresh every 20 minutes.
      */
     public void startBountyScheduler() {
-        Bukkit.getScheduler().runTaskTimer(plugin, () -> refreshBounties(), 0L, 20L*60*20);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::refreshBounties, 0L, 20L * 60 * 20);
     }
 }
